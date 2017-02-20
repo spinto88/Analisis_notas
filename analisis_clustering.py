@@ -8,13 +8,14 @@ from scipy.sparse import csr_matrix
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score as sil_score
+from sklearn.metrics import calinski_harabaz_score as ch_score
 
 import codecs
 import numpy as np
 import matplotlib.pyplot as plt
 
 texts = []
-for i in range(71):
+for i in range(31):
  
     try:
         fp = codecs.open("Notas_prueba/Notas_prueba" + str(i) + ".txt",'r','utf8')
@@ -23,46 +24,96 @@ for i in range(71):
     except:
         pass
 
-
-stop_words = stopwords.words('spanish')
-                       
+ 
 count_vect = CountVectorizer(ngram_range = (1,3), \
-                             max_df = 0.70, min_df = 3)
+                             max_df = 0.70, min_df = 2)
 
 x_counts = count_vect.fit_transform(texts)
 
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
-
+"""
 ans = []
-for clusters in range(2, 10):
-     km = KMeans(n_clusters = clusters).fit(x_tfidf)
-     ans.append([clusters, sil_score(x_tfidf, km.labels_)])
+ans2 = []
+for clusters in range(2, 40):
+
+    try:
+        km = KMeans(n_clusters = clusters, \
+               n_init = 200, n_jobs = 1).fit(x_tfidf)
+
+        ans.append([clusters, sil_score(x_tfidf, km.labels_)])
+        ans2.append([clusters, ch_score(x_tfidf.toarray(), km.labels_)])
+    except:
+        pass
 
 ans_sorted = sorted(ans, key = lambda x: x[1], reverse = True)
-print ans_sorted[:20]
+ans_sorted2 = sorted(ans2, key = lambda x: x[1], reverse = True)
+print ans_sorted[:5]
+print ans_sorted2[:5]
+"""
+"""
 
+# Informacion contenida en PCA
+info = []
+from sklearn.decomposition import PCA
+for dim in range(1, 40):
+
+    try:
+        pca = PCA(n_components = dim)
+        x_red = pca.fit_transform(x_tfidf.toarray())
+        info.append(np.sum(pca.explained_variance_ratio_))
+    except:
+        pass
+
+plt.plot(range(1,40), info, '.-', markersize = 20)
+plt.xlabel('Dimensions', size = 20)
+plt.ylabel('Explained variance ratio', size = 20)
+plt.grid('on')
+plt.ylim([0, 1])
+plt.show()
+#plt.savefig('Explained_variance.eps')
+"""
 
 # Enfoque con PCA
 from sklearn.decomposition import PCA
 
 ans = []
+ans2 = []
 
-for dim in [3]: #range(2, 10):
+for dim in range(1, 31):
 
     pca = PCA(n_components = dim)
     x_red = pca.fit_transform(x_tfidf.toarray())
 
-    for clusters in [4]: #range(2, 10):
+    for clusters in range(2, 31):
+   
+        try:
+            km = KMeans(n_clusters = clusters, \
+                    n_init = 200, n_jobs = 1).fit(x_red)
 
-        km = KMeans(n_clusters = clusters, \
-                    n_init = 100, n_jobs = -1).fit(x_red)
+            ans.append([dim, clusters, sil_score(x_red, km.labels_)])
+            ans2.append([dim, clusters, ch_score(x_red, km.labels_)])
+        except:
+            pass
 
-#        ans.append([dim, clusters, sil_score(x_red, km.labels_)])
+ans_sorted = sorted(ans, key = lambda x: x[2], reverse = True)
+ans_sorted2 = sorted(ans2, key = lambda x: x[2], reverse = True)
+print ans_sorted[:5]
+print ans_sorted2[:5]
 
+"""    
 
-#ans_sorted = sorted(ans, key = lambda x: x[2], reverse = True)
-#print ans_sorted[:20]
+# Enfoque con PCA
+from sklearn.decomposition import PCA
+
+pca = PCA(n_components = 3)
+x_red = pca.fit_transform(x_tfidf.toarray())
+
+clusters = 4
+km = KMeans(n_clusters = clusters, \
+               n_init = 10, n_jobs = -1).fit(x_red)
+
+print km.labels_
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -84,11 +135,11 @@ for i in range(len(x_red)):
     ax.scatter(x_red[i][0], x_red[i][1], x_red[i][2], c = color, marker =  'o')
 
 
-ax.set_xlabel('X Label')
-ax.set_ylabel('Y Label')
-ax.set_zlabel('Z Label')
+ax.set_xlabel('Dim 1')
+ax.set_ylabel('Dim 2')
+ax.set_zlabel('Dim 3')
+#plt.show()
 
-plt.savefig('Kmeans.png')
+plt.savefig('Kmeans.eps')
 plt.show()
-
-
+"""
