@@ -11,11 +11,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 texts = []
-for i in range(31):
+for i in range(40):
 
-    fp = codecs.open("Notas_prueba/Notas_prueba" + str(i) + ".txt",'r','utf8')
-    texts.append(fp.read())
-    fp.close()
+   try:
+       fp = codecs.open("Notas_prueba/Notas_prueba" + str(i) + ".txt",'r','utf8')
+       texts.append(fp.read())
+       fp.close()
+   except:
+       pass
 
  
 count_vect = CountVectorizer(ngram_range = (1,3), \
@@ -25,9 +28,6 @@ x_counts = count_vect.fit_transform(texts)
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
 
-print x_tfidf.shape
-exit()
-
 weighted_matrix = (x_tfidf.dot(x_tfidf.transpose())).toarray()
 
 for i in range(len(weighted_matrix)):
@@ -36,8 +36,8 @@ for i in range(len(weighted_matrix)):
 import igraph
 graph = igraph.Graph.Weighted_Adjacency(list(weighted_matrix), mode = igraph.ADJ_MAX)
 weights = [es['weight'] for es in graph.es]
-"""
-hist, edges = np.histogram(weights, bins = np.arange(-0.05, 1.05, 0.1), normed = True)
+
+hist, edges = np.histogram(weights, bins = np.arange(-0.05, 1.15, 0.1), normed = True)
 
 plt.axes([0.15, 0.15, 0.70, 0.70])
 plt.plot([(edges[i] + edges[i+1])*0.5 for i in range(len(edges) - 1)], \
@@ -51,7 +51,8 @@ plt.xticks(size = 20)
 plt.yticks(size = 20)
 plt.title('Bin size = 0.1', size = 20)
 plt.savefig('Weight_hist.eps')
-"""
+plt.show()
+
 """
 try:
     clust = graph.community_fastgreedy(weights = weights)
@@ -76,14 +77,18 @@ try:
   print clust.as_clustering()
 except:
   pass
-
+"""
 try:
   clust = graph.community_infomap(edge_weights = weights)
   print clust
 except:
   pass
-"""
-"""
+
+membership = clust.membership
+print graph.modularity(membership, weights = weights)
+
+print len(set(membership))
+
 color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow'}
 
 
@@ -94,7 +99,6 @@ igraph.plot(graph, layout = layout, \
             for i in range(len(membership))], \
             target = 'Weighted_network.png')
 
-"""
 
 # Enfoque con umbral
 
@@ -137,7 +141,7 @@ graph = igraph.Graph.Adjacency(list(adjacency_matrix), mode = igraph.ADJ_MAX)
 clust = graph.community_infomap()
 membership = clust.membership
 
-print membership
+print graph.modularity(membership)
 
 color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow'}
 
