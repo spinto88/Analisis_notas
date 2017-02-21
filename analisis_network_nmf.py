@@ -46,9 +46,26 @@ from sklearn.preprocessing import Normalizer
 
 mod = []
 dim_range = range(1, 32)
+
+nmf = NMF(4)
+nmf_array = nmf.fit_transform(x_tfidf)
+
+normalizer = Normalizer()
+nmf_array = normalizer.fit_transform(nmf_array)
+
+weighted_matrix = nmf_array.dot(nmf_array.transpose())
+
+for i in range(len(weighted_matrix)):
+    weighted_matrix[i][i] = 0.00
+
+import igraph
+graph = igraph.Graph.Weighted_Adjacency(list(weighted_matrix), mode = igraph.ADJ_MAX)
+clust = graph.community_infomap(edge_weights = weights)
+membership4 = clust.membership
+
 for dim in dim_range:
 
-  try:
+  
     nmf = NMF(dim)
     nmf_array = nmf.fit_transform(x_tfidf)
 
@@ -65,7 +82,7 @@ for dim in dim_range:
     weights = [es['weight'] for es in graph.es]
 
     hist, edges = np.histogram(weights, bins = np.arange(-0.05, 1.15, 0.1), normed = True)
-
+    """
     plt.axes([0.15, 0.15, 0.70, 0.70])
     plt.plot([(edges[i] + edges[i+1])*0.5 for i in range(len(edges) - 1)], \
           hist, '.-', markersize = 20)
@@ -79,19 +96,17 @@ for dim in dim_range:
     plt.title('Bin size = 0.1', size = 20)
     plt.savefig('Weight_hist_nmf4.eps')
     plt.show()
+    """
+    clust = graph.community_infomap(edge_weights = weights)
+    membership = clust.membership
+ 
+#    mod.append(graph.modularity(membership, weights = weights))
 
-    try:
-      clust = graph.community_infomap(edge_weights = weights)
-      membership = clust.membership
-    except:
-      pass
+    import igraph.clustering as clustering
 
-    mod.append(graph.modularity(membership, weights = weights))
+    mod.append(len(set(membership)))
 
-  except:
-    pass
-
-
+"""
 color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow'}
 
 
@@ -101,8 +116,8 @@ igraph.plot(graph, layout = layout, \
             vertex_color = [color_dict[membership[i]] \
             for i in range(len(membership))], \
             target = 'Weighted_network_nmf4.png')
-
-
+"""
+"""
 plt.axes([0.15, 0.15, 0.70, 0.70])
 plt.plot(dim_range, mod, '.-', markersize = 20)
 plt.grid('on')
@@ -113,6 +128,19 @@ plt.ylim([0, 1.00])
 plt.xticks(size = 20)
 plt.yticks(size = 20)
 plt.savefig('Modularity_NMF.eps')
+plt.show()
+"""
+
+plt.axes([0.15, 0.15, 0.70, 0.70])
+plt.plot(dim_range, mod, '.-', markersize = 20)
+plt.grid('on')
+plt.xlabel('Dimensions (D)', size = 20)
+plt.ylabel('Number of communities', size = 20)
+plt.xlim([0, 32])
+plt.ylim([0, 10])
+plt.xticks(size = 20)
+plt.yticks(size = 20)
+plt.savefig('Number_communities_nmf.eps')
 plt.show()
 
 """
