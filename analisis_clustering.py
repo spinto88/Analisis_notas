@@ -80,16 +80,16 @@ from sklearn.decomposition import PCA
 ans = []
 ans2 = []
 
-for dim in range(1, 31):
+for dim in range(1, 21):
 
-    pca = PCA(n_components = dim)
+    pca = PCA(n_components = dim, whiten = True)
     x_red = pca.fit_transform(x_tfidf.toarray())
 
     for clusters in range(2, 31):
    
         try:
             km = KMeans(n_clusters = clusters, \
-                    n_init = 200, n_jobs = 1).fit(x_red)
+                    n_init = 10, n_jobs = 1).fit(x_red)
 
             ans.append([dim, clusters, sil_score(x_red, km.labels_)])
             ans2.append([dim, clusters, ch_score(x_red, km.labels_)])
