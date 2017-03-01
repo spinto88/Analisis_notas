@@ -8,7 +8,6 @@ from scipy.sparse import csr_matrix
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score as sil_score
-from sklearn.metrics import calinski_harabaz_score as ch_score
 
 import codecs
 import numpy as np
@@ -30,11 +29,10 @@ count_vect = CountVectorizer(ngram_range = (1,3), \
 
 x_counts = count_vect.fit_transform(texts)
 
-tfidf_transformer = TfidfTransformer(norm = 'l2')
+tfidf_transformer = TfidfTransformer(norm = None)
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
-"""
+
 ans = []
-ans2 = []
 for clusters in range(2, 40):
 
     try:
@@ -42,20 +40,17 @@ for clusters in range(2, 40):
                n_init = 200, n_jobs = 1).fit(x_tfidf)
 
         ans.append([clusters, sil_score(x_tfidf, km.labels_)])
-        ans2.append([clusters, ch_score(x_tfidf.toarray(), km.labels_)])
     except:
         pass
 
 ans_sorted = sorted(ans, key = lambda x: x[1], reverse = True)
-ans_sorted2 = sorted(ans2, key = lambda x: x[1], reverse = True)
 print ans_sorted[:5]
-print ans_sorted2[:5]
 """
-"""
-
 # Informacion contenida en PCA
 info = []
 from sklearn.decomposition import PCA
+#from sklearn.preprocessing import Normalizer
+#normalizer = Normalizer()
 for dim in range(1, 40):
 
     try:
@@ -76,38 +71,43 @@ plt.show()
 
 # Enfoque con PCA
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import Normalizer
+normalizer = Normalizer()
 
 ans = []
 ans2 = []
 
-for dim in range(1, 21):
+for dim in range(2, 21):
 
     pca = PCA(n_components = dim, whiten = True)
     x_red = pca.fit_transform(x_tfidf.toarray())
+#    x_red = normalizer.fit_transform(x_red)
 
     for clusters in range(2, 31):
    
         try:
             km = KMeans(n_clusters = clusters, \
-                    n_init = 10, n_jobs = 1).fit(x_red)
+                    n_init = 200, n_jobs = 1).fit(x_red)
 
             ans.append([dim, clusters, sil_score(x_red, km.labels_)])
-            ans2.append([dim, clusters, ch_score(x_red, km.labels_)])
         except:
             pass
 
 ans_sorted = sorted(ans, key = lambda x: x[2], reverse = True)
-ans_sorted2 = sorted(ans2, key = lambda x: x[2], reverse = True)
 print ans_sorted[:5]
-print ans_sorted2[:5]
 
-"""    
-
+ 
 # Enfoque con PCA
 from sklearn.decomposition import PCA
 
-pca = PCA(n_components = 3)
+pca = PCA(n_components = 3, whiten = True)
 x_red = pca.fit_transform(x_tfidf.toarray())
+
+from sklearn.preprocessing import Normalizer
+
+#normalizer = Normalizer()
+
+#x_red = normalizer.fit_transform(x_red)
 
 clusters = 4
 km = KMeans(n_clusters = clusters, \
@@ -138,8 +138,6 @@ for i in range(len(x_red)):
 ax.set_xlabel('Dim 1')
 ax.set_ylabel('Dim 2')
 ax.set_zlabel('Dim 3')
-#plt.show()
-
-plt.savefig('Kmeans.eps')
+#plt.savefig('Kmeans_normalizer.eps')
 plt.show()
-"""
+

@@ -31,44 +31,6 @@ x_counts = count_vect.fit_transform(texts)
 
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
-"""
-ans = []
-ans2 = []
-for clusters in range(2, 40):
-
-    try:
-        km = KMeans(n_clusters = clusters, \
-               n_init = 200, n_jobs = 1).fit(x_tfidf)
-
-        ans.append([clusters, sil_score(x_tfidf, km.labels_)])
-    except:
-        pass
-
-ans_sorted = sorted(ans, key = lambda x: x[1], reverse = True)
-print ans_sorted[:5]
-"""
-"""
-
-# Informacion contenida en PCA
-info = []
-from sklearn.decomposition import PCA
-for dim in range(1, 40):
-
-    try:
-        pca = PCA(n_components = dim)
-        x_red = pca.fit_transform(x_tfidf.toarray())
-        info.append(np.sum(pca.explained_variance_ratio_))
-    except:
-        pass
-
-plt.plot(range(1,40), info, '.-', markersize = 20)
-plt.xlabel('Dimensions', size = 20)
-plt.ylabel('Explained variance ratio', size = 20)
-plt.grid('on')
-plt.ylim([0, 1])
-plt.show()
-#plt.savefig('Explained_variance.eps')
-"""
 
 # Enfoque con NMF
 from sklearn.decomposition import NMF
@@ -78,65 +40,54 @@ normalizer = Normalizer()
 
 ans = []
 
-for dim in range(1, 31):
+for dim in range(2, 10):
 
-    nmf = NMF(n_components = dim)
+    err = []
+    for rand_state in range(100):
+
+        nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
+              random_state = rand_state)
+
+        x_red = nmf.fit_transform(x_tfidf.toarray())
+        err.append(nmf.reconstruction_err_)
+        if nmf.reconstruction_err_ == min(err):
+            rand_state_aux = rand_state
+        
+    nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
+          random_state = rand_state_aux)
+
     x_red = nmf.fit_transform(x_tfidf.toarray())
-
     x_red = normalizer.fit_transform(x_red)
 
-    for clusters in range(2, 31):
+    sil = []
+#    plt.axes([0.20, 0.20, 0.70, 0.70])
+    for clusters in range(2, 10):
    
         try:
             km = KMeans(n_clusters = clusters, \
                     n_init = 200, n_jobs = 1).fit(x_red)
  
+            sil.append(sil_score(x_red, km.labels_))
             ans.append([dim, clusters, sil_score(x_red, km.labels_)])
+	
+	    if sil_score(x_red, km.labels_) == max(sil):
+                clusters_max = clusters
         except:
             pass
 
-ans_sorted = sorted(ans, key = lambda x: x[2], reverse = True)
-print ans_sorted[:5]
-
-"""    
-
-# Enfoque con PCA
-from sklearn.decomposition import PCA
-
-pca = PCA(n_components = 3)
-x_red = pca.fit_transform(x_tfidf.toarray())
-
-clusters = 4
-km = KMeans(n_clusters = clusters, \
-               n_init = 10, n_jobs = -1).fit(x_red)
-
-print km.labels_
-
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-for i in range(len(x_red)):
-
-    if i < 10:
-        color = 'black'
-    elif i >= 10 and i < 17:
-        color = 'blue'
-    elif i >= 17 and i < 24:
-        color = 'red'
-    else:
-        color = 'green'
-    
-    ax.scatter(x_red[i][0], x_red[i][1], x_red[i][2], c = color, marker =  'o')
-
-
-ax.set_xlabel('Dim 1')
-ax.set_ylabel('Dim 2')
-ax.set_zlabel('Dim 3')
-#plt.show()
-
-plt.savefig('Kmeans.eps')
+#    plt.plot(range(2, 31), sil, '.-', markersize = 15, \
+#                         label = 'Dim = ' + str(dim))
+"""
+plt.grid('on')
+plt.xlabel('Number of clusters (k)', size = 20)
+plt.ylabel('Silhouette score', size = 20)
+plt.xticks(size = 20)
+plt.yticks(size = 20)
+plt.ylim([0.00, 1.00])
+plt.legend(loc = 'best')
+plt.savefig('NMF_silhouette_dims.eps')
 plt.show()
 """
+
+ans_sorted = sorted(ans, key = lambda x: x[2], reverse = True)
+print ans_sorted[:5]

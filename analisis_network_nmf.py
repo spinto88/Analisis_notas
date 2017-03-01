@@ -45,8 +45,12 @@ from sklearn.decomposition import NMF
 from sklearn.preprocessing import Normalizer
 
 mod = []
+mod2 = []
 dim_range = range(1, 32)
 
+tfidf_transformer = TfidfTransformer(norm = None)
+x_tfidf = tfidf_transformer.fit_transform(x_counts)
+"""
 nmf = NMF(4)
 nmf_array = nmf.fit_transform(x_tfidf)
 
@@ -62,9 +66,9 @@ import igraph
 graph = igraph.Graph.Weighted_Adjacency(list(weighted_matrix), mode = igraph.ADJ_MAX)
 clust = graph.community_infomap(edge_weights = weights)
 membership4 = clust.membership
+"""
 
 for dim in dim_range:
-
   
     nmf = NMF(dim)
     nmf_array = nmf.fit_transform(x_tfidf)
@@ -100,11 +104,23 @@ for dim in dim_range:
     clust = graph.community_infomap(edge_weights = weights)
     membership = clust.membership
  
-#    mod.append(graph.modularity(membership, weights = weights))
+    mod.append(graph.modularity(membership, weights = weights))
 
-    import igraph.clustering as clustering
+#    import igraph.clustering as clustering
 
-    mod.append(len(set(membership)))
+    mod2.append(len(set(membership)))
+
+    
+    color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow', \
+                  4: 'blue', 5: 'black', 6: 'violet'}
+
+    
+    layout = graph.layout_fruchterman_reingold(weights=weights)
+    igraph.plot(graph, layout = layout, \
+            edge_width = [5 * weight for weight in weights], \
+            vertex_color = [color_dict[membership[i]] \
+            for i in range(len(membership))])
+    
 
 """
 color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow'}
@@ -117,7 +133,7 @@ igraph.plot(graph, layout = layout, \
             for i in range(len(membership))], \
             target = 'Weighted_network_nmf4.png')
 """
-"""
+
 plt.axes([0.15, 0.15, 0.70, 0.70])
 plt.plot(dim_range, mod, '.-', markersize = 20)
 plt.grid('on')
@@ -127,12 +143,12 @@ plt.xlim([0, 32])
 plt.ylim([0, 1.00])
 plt.xticks(size = 20)
 plt.yticks(size = 20)
-plt.savefig('Modularity_NMF.eps')
+#plt.savefig('Modularity_NMF.eps')
 plt.show()
-"""
 
+plt.clf()
 plt.axes([0.15, 0.15, 0.70, 0.70])
-plt.plot(dim_range, mod, '.-', markersize = 20)
+plt.plot(dim_range, mod2, '.-', markersize = 20)
 plt.grid('on')
 plt.xlabel('Dimensions (D)', size = 20)
 plt.ylabel('Number of communities', size = 20)
@@ -140,7 +156,7 @@ plt.xlim([0, 32])
 plt.ylim([0, 10])
 plt.xticks(size = 20)
 plt.yticks(size = 20)
-plt.savefig('Number_communities_nmf.eps')
+#plt.savefig('Number_communities_nmf.eps')
 plt.show()
 
 """
