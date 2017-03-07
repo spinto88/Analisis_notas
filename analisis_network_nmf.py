@@ -1,17 +1,18 @@
+
+
+
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from nltk.corpus import stopwords
-from scipy.sparse import csr_matrix
-
 import codecs
 import numpy as np
 import matplotlib.pyplot as plt
+import random as rand
 
 texts = []
-for i in range(40):
+for i in range(50):
 
     try:
        fp = codecs.open("Notas_prueba/Notas_prueba" + str(i) + ".txt",'r','utf8')
@@ -23,7 +24,7 @@ for i in range(40):
 count_vect = CountVectorizer(ngram_range = (1,3), \
                              max_df = 0.70, min_df = 2)
 x_counts = count_vect.fit_transform(texts)
-
+"""
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
 
@@ -40,43 +41,42 @@ clust = graph.community_infomap(edge_weights = weights)
 membership = clust.membership
 
 print graph.modularity(membership, weights = weights)
-
+"""
 from sklearn.decomposition import NMF
 from sklearn.preprocessing import Normalizer
 
 mod = []
-mod2 = []
-dim_range = range(1, 32)
 
-tfidf_transformer = TfidfTransformer(norm = None)
+dim_range = [7] #range(1, 7)
+
+tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
-"""
-nmf = NMF(4)
-nmf_array = nmf.fit_transform(x_tfidf)
-
-normalizer = Normalizer()
-nmf_array = normalizer.fit_transform(nmf_array)
-
-weighted_matrix = nmf_array.dot(nmf_array.transpose())
-
-for i in range(len(weighted_matrix)):
-    weighted_matrix[i][i] = 0.00
-
-import igraph
-graph = igraph.Graph.Weighted_Adjacency(list(weighted_matrix), mode = igraph.ADJ_MAX)
-clust = graph.community_infomap(edge_weights = weights)
-membership4 = clust.membership
-"""
 
 for dim in dim_range:
   
-    nmf = NMF(dim)
+    err = []
+    mod2 = []
+    for rand_state in [90]:#range(1000):
+
+        nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
+              random_state = rand_state)
+
+        x_red = nmf.fit_transform(x_tfidf.toarray())
+        err.append(nmf.reconstruction_err_)
+        if nmf.reconstruction_err_ == min(err):
+            rand_state_aux = rand_state
+
+    nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
+              random_state = rand_state_aux)
+
     nmf_array = nmf.fit_transform(x_tfidf)
 
     normalizer = Normalizer()
     nmf_array = normalizer.fit_transform(nmf_array)
 
-    weighted_matrix = nmf_array.dot(nmf_array.transpose())
+    labels = [np.argmax(x) for x in nmf_array]
+
+    weighted_matrix = nmf_array.dot(nmf_array.T)
 
     for i in range(len(weighted_matrix)):
         weighted_matrix[i][i] = 0.00
@@ -85,89 +85,64 @@ for dim in dim_range:
     graph = igraph.Graph.Weighted_Adjacency(list(weighted_matrix), mode = igraph.ADJ_MAX)
     weights = [es['weight'] for es in graph.es]
 
-    hist, edges = np.histogram(weights, bins = np.arange(-0.05, 1.15, 0.1), normed = True)
-    """
-    plt.axes([0.15, 0.15, 0.70, 0.70])
-    plt.plot([(edges[i] + edges[i+1])*0.5 for i in range(len(edges) - 1)], \
-          hist, '.-', markersize = 20)
-    plt.grid('on')
-    plt.xlabel('Edge weights', size = 20)
-    plt.ylabel('Density', size = 20)
-    plt.xlim([-0.05, 1.05])
-    plt.ylim([-0.5, 5])
-    plt.xticks(size = 20)
-    plt.yticks(size = 20)
-    plt.title('Bin size = 0.1', size = 20)
-    plt.savefig('Weight_hist_nmf4.eps')
-    plt.show()
-    """
-    clust = graph.community_infomap(edge_weights = weights)
-    membership = clust.membership
- 
-    mod.append(graph.modularity(membership, weights = weights))
+    # Enfoque con umbral
 
-#    import igraph.clustering as clustering
+    for thr in np.linspace(0.00, 1.00, 41):
 
-    mod2.append(len(set(membership)))
+        adjacency_matrix = np.zeros(weighted_matrix.shape, dtype = np.int)
 
-    
+        for i in range(weighted_matrix.shape[0]):
+            for j in range(weighted_matrix.shape[1]):
+                if weighted_matrix[i][j] > thr:
+                    adjacency_matrix[i][j] = 1
+
+        graph_aux = igraph.Graph.Adjacency(list(adjacency_matrix), mode = igraph.ADJ_MAX)
+        clust = graph_aux.clusters()
+        giant = clust.giant()
+        if len(giant.vs) < len(graph_aux.vs):
+            thr = thr - 1.00/41
+            break
+
     color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow', \
-                  4: 'blue', 5: 'black', 6: 'violet'}
-
+                  4: 'cyan', 5: 'orange', 6: 'violet', 7:'brown', 8:'white',\
+                  9: 'black'}
     
+    rand.seed(123457)
     layout = graph.layout_fruchterman_reingold(weights=weights)
     igraph.plot(graph, layout = layout, \
-            edge_width = [5 * weight for weight in weights], \
-            vertex_color = [color_dict[membership[i]] \
-            for i in range(len(membership))])
-    
+            edge_width = [3 * weight if weight >= thr else 0.00 for weight in weights], \
+            vertex_color = [color_dict[labels[i]] \
+            for i in range(len(labels))],
+            vertex_label = [str(i) for i in range(len(graph.vs))],\
+            vertex_size = 25)#,\
+#            target = 'Layout_dim' + str(dim) + '.png')
+    """
+    components = [nmf.components_[i] \
+              for i in range(len(nmf.components_))]
 
-"""
-color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow'}
+    features = count_vect.get_feature_names()
+    fp = codecs.open('Interpretacion_nmf.txt','a','utf8')
+    fp.write('Dimension ' + str(dim) + '\n\n')
 
+    for j in range(len(components)):
 
-layout = graph.layout_fruchterman_reingold(weights=weights)
-igraph.plot(graph, layout = layout, \
-            edge_width = [5 * weight for weight in weights], \
-            vertex_color = [color_dict[membership[i]] \
-            for i in range(len(membership))], \
-            target = 'Weighted_network_nmf4.png')
-"""
+        comp = components[j]
+        feat_val = []
+        for i in range(len(features)):
+            feat_val.append([features[i], comp[i]])
 
-plt.axes([0.15, 0.15, 0.70, 0.70])
-plt.plot(dim_range, mod, '.-', markersize = 20)
-plt.grid('on')
-plt.xlabel('Dimensions (D)', size = 20)
-plt.ylabel('Modularity', size = 20)
-plt.xlim([0, 32])
-plt.ylim([0, 1.00])
-plt.xticks(size = 20)
-plt.yticks(size = 20)
-#plt.savefig('Modularity_NMF.eps')
-plt.show()
+        ans = sorted(feat_val, key = lambda x: x[1], reverse = True)
+        
+        notes_in_comp = [i for i in range(len(labels)) \
+                         if labels[i] == j]
 
-plt.clf()
-plt.axes([0.15, 0.15, 0.70, 0.70])
-plt.plot(dim_range, mod2, '.-', markersize = 20)
-plt.grid('on')
-plt.xlabel('Dimensions (D)', size = 20)
-plt.ylabel('Number of communities', size = 20)
-plt.xlim([0, 32])
-plt.ylim([0, 10])
-plt.xticks(size = 20)
-plt.yticks(size = 20)
-#plt.savefig('Number_communities_nmf.eps')
-plt.show()
-
-"""
-color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow'}
-
-
-layout = graph.layout_fruchterman_reingold(weights=weights)
-igraph.plot(graph, layout = layout, \
-            edge_width = [5 * weight for weight in weights], \
-            vertex_color = [color_dict[membership[i]] \
-            for i in range(len(membership))], \
-            target = 'Weighted_network_nmf4.png')
-"""
+        for note in notes_in_comp:
+             fp.write(str(note) + ', ')
+        fp.write('\n')
+        for t in ans[:20]:
+            fp.write(t[0] + ', ')
+        fp.write('\n\n')
+    fp.write('\n\n\n\n')
+    fp.close()
+    """
 

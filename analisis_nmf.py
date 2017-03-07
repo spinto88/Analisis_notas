@@ -27,15 +27,12 @@ count_vect = CountVectorizer(ngram_range = (1,3), \
                              max_df = 0.70, min_df = 2)
 x_counts = count_vect.fit_transform(texts)
 
-tfidf_transformer = TfidfTransformer(norm = None)
+tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
 
-from sklearn.preprocessing import Normalizer
 from sklearn.decomposition import NMF
 
-norm = Normalizer()
-
-for dim in range(2, 15):
+for dim in [8]:#range(2, 31):
 
     err = []
 
@@ -52,11 +49,14 @@ for dim in range(2, 15):
     nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
               random_state = rand_state)
 
-    xred = nmf.fit_transform(norm.fit_transform(x_tfidf))
+    xred = nmf.fit_transform(x_tfidf)
 
     labels = [np.argmax(x) for x in xred]
 
-    print dim, sil_score(xred, labels)
+#    fp = open('Data_nmf.dat','a')
+    print '{}, {}, {}\n'.format(dim, \
+               sil_score(x_tfidf, labels), sil_score(xred, labels))
+#    fp.close()
 
 
 

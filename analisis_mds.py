@@ -28,59 +28,70 @@ x_counts = count_vect.fit_transform(texts)
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
 
-weighted_matrix = (x_tfidf.dot(x_tfidf.transpose())).toarray()
+from sklearn.manifold import MDS
+from sklearn.decomposition import NMF
+from sklearn.preprocessing import Normalizer
+
+mds = MDS(n_components = 2, dissimilarity = 'precomputed', random_state = 0)
+
+norm = Normalizer()
+err = []
+dim = 6
+
+for rand_state in range(100):
+
+   nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
+         random_state = rand_state)
+
+   x_red = nmf.fit_transform(x_tfidf.toarray())
+   err.append(nmf.reconstruction_err_)
+   if nmf.reconstruction_err_ == min(err):
+       rand_state_aux = rand_state
+
+nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
+          random_state = rand_state_aux)
+
+x_red = nmf.fit_transform(x_tfidf)
+x_red = norm.fit_transform(x_red)
+
+labels = [np.argmax(x) for x in x_red]
+
+components = norm.fit_transform(nmf.components_)
+
+weighted_matrix = components.dot(components.T)
+weighted_matrix_points = (x_red.dot(x_red.T))
 
 dissim = 1.00 - weighted_matrix
+dissim_points = 1.00 - weighted_matrix_points
 
-from sklearn.manifold import MDS
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score as sil_score
+mds = MDS(n_components = 2, dissimilarity = 'precomputed', random_state = 0)
+print dissim.shape
+print dissim_points.shape
 
-
-for dim in range(2, 5):
-
-  mds = MDS(n_components = dim, dissimilarity = 'precomputed')
-
-  dissim_red = mds.fit_transform(dissim)
-
-  sil = []
-  for k in range(2, 31):
-    try:
-        km = KMeans(k).fit(dissim_red)
-        sil.append(sil_score(dissim_red, km.labels_))
-    except:
-        pass
-
-  plt.axes([0.20, 0.20, 0.70, 0.70])
-  plt.plot(range(2, 31), sil, '.-', markersize = 15, \
-                         label = 'Dim = ' + str(dim))
-
-plt.grid('on')
-plt.xlabel('Number of clusters (k)', size = 20)
-plt.ylabel('Silhouette score', size = 20)
-plt.xticks(size = 20)
-plt.yticks(size = 20)
-plt.legend(loc = 'best')
-plt.savefig('MDS.eps')
-plt.show()
-
-
-mds = MDS(n_components = 2, dissimilarity = 'precomputed')
 dissim_red = mds.fit_transform(dissim)
 
-km = KMeans(4).fit(dissim_red)
-labels = km.labels_
+mds = MDS(n_components = 2, dissimilarity = 'precomputed', random_state = 4)
+dissim_red_points = mds.fit_transform(dissim_points)
 
-color_dict = {0: 'red', 1: 'green', 2: 'blue', 3: 'yellow'}
+color_dict = {0: 'red', 1: 'green', 2: 'blue', 3: 'orange', \
+              4: 'violet', 5: 'brown'}
 
 plt.axes([0.15, 0.15, 0.75, 0.75])
-for i in range(len(dissim_red)):
-    plt.scatter(dissim_red[i,0], dissim_red[i,1], s = 100, \
+"""
+for i in range(len(dissim_red_points)):
+    plt.scatter(dissim_red_points[i,0], dissim_red_points[i,1], s = 100,
                 c = color_dict[labels[i]])
-
+"""
+for i in range(len(dissim_red)):
+    plt.arrow(0, 0, dissim_red[i,0], dissim_red[i,1], color = color_dict[i], width = 0.005)
+             
+plt.xlim([-1, 1])
+plt.ylim([-1, 1])
+plt.xticks(size = 20)
+plt.yticks(size = 20)
 plt.xlabel('Dim 1', size = 20)
 plt.ylabel('Dim 2', size = 20)
 plt.grid('on')
-plt.savefig('MDS_map.eps')
+plt.savefig('MDS_components' + str(dim) + '.eps')
 plt.show()
 
