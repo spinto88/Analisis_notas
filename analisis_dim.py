@@ -1,20 +1,31 @@
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfTransformer
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-from nltk.corpus import stopwords
-from scipy.sparse import csr_matrix
 
 import codecs
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+This programa shows the dependency of the dimensions
+in the count_vectorizer method with the parameter max_df,
+which filter a term if this one appears in more than the
+(100 * max_df) percent of documents.
+It helps to discard common terms, but if the corpus
+is small and one topic is overrepresented then 
+attention must be paid because important keywords
+could be deleted.
+"""
+
+
+directory = 'Politica_1month/'
+root_name = 'Nota'
+max_notes = 600
+
+
 texts = []
-for i in range(40):
+for i in range(max_notes):
 
    try:
-       fp = codecs.open("Notas_prueba/Notas_prueba" + str(i) + ".txt",'r','utf8')
+       fp = codecs.open(directory + root_name + str(i) + ".txt",'r','utf8')
        texts.append(fp.read())
        fp.close()
    except:
@@ -40,7 +51,7 @@ plt.grid('on')
 plt.xlim([0.35, 1.05])
 plt.xticks(size = 20)
 plt.yticks(size = 20)
-plt.savefig('Dim_tfidf.eps')
+#plt.savefig('Dim_tfidf.eps')
 plt.show()
 
 

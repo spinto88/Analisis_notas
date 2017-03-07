@@ -1,148 +1,98 @@
-
-
-
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
-
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import NMF
+from sklearn.preprocessing import Normalizer
+from sklearn.metrics import silhouette_score as sil_score
 
 import codecs
 import numpy as np
-import matplotlib.pyplot as plt
-import random as rand
+    
+import igraph
+
+from copy import deepcopy
+
+from merit_factors import weak_merit_factor
+
+ 
+directory = 'Notas_prueba/'
+root_name = 'Notas_prueba'
+max_notes = 50
+
+max_df = 0.70
+nmf_dim_range = range(7,8)
 
 texts = []
-for i in range(50):
+for i in range(max_notes):
 
-    try:
-       fp = codecs.open("Notas_prueba/Notas_prueba" + str(i) + ".txt",'r','utf8')
+   try:
+       fp = codecs.open(directory + root_name + str(i) + ".txt",'r','utf8')
        texts.append(fp.read())
        fp.close()
-    except:
-        pass
- 
+   except:
+       pass
+
 count_vect = CountVectorizer(ngram_range = (1,3), \
-                             max_df = 0.70, min_df = 2)
+                             max_df = max_df, min_df = 2)
 x_counts = count_vect.fit_transform(texts)
-"""
-tfidf_transformer = TfidfTransformer(norm = 'l2')
-x_tfidf = tfidf_transformer.fit_transform(x_counts)
-
-weighted_matrix = x_tfidf.dot(x_tfidf.transpose()).toarray()
-
-for i in range(len(weighted_matrix)):
-    weighted_matrix[i][i] = 0.00
-
-import igraph
-graph = igraph.Graph.Weighted_Adjacency(list(weighted_matrix), mode = igraph.ADJ_MAX)
-weights = [es['weight'] for es in graph.es]
-
-clust = graph.community_infomap(edge_weights = weights)
-membership = clust.membership
-
-print graph.modularity(membership, weights = weights)
-"""
-from sklearn.decomposition import NMF
-from sklearn.preprocessing import Normalizer
-
-mod = []
-
-dim_range = [7] #range(1, 7)
 
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
 
-for dim in dim_range:
+normalizer = Normalizer()
+
+data = []
+
+for dim in nmf_dim_range:
+
+    observables_dim = []
   
-    err = []
-    mod2 = []
-    for rand_state in [90]:#range(1000):
+    for rand_state in range(1):
 
         nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
               random_state = rand_state)
 
-        x_red = nmf.fit_transform(x_tfidf.toarray())
-        err.append(nmf.reconstruction_err_)
-        if nmf.reconstruction_err_ == min(err):
-            rand_state_aux = rand_state
+        nmf_array = nmf.fit_transform(x_tfidf)
 
-    nmf = NMF(n_components = dim, max_iter = 1000, init = 'random',\
-              random_state = rand_state_aux)
+        # Normalize the nmf array
+        nmf_array = normalizer.fit_transform(nmf_array)
 
-    nmf_array = nmf.fit_transform(x_tfidf)
+        # NMF labels
+        labels = [np.argmax(x) for x in nmf_array]
 
-    normalizer = Normalizer()
-    nmf_array = normalizer.fit_transform(nmf_array)
+        # Weighted matrix of similarities
+        weighted_matrix = nmf_array.dot(nmf_array.T)
 
-    labels = [np.argmax(x) for x in nmf_array]
+        # ------ Silhouette coefficient of dissimilarities ---- #
 
-    weighted_matrix = nmf_array.dot(nmf_array.T)
+        dissim = np.ones(weighted_matrix.shape) - weighted_matrix
 
-    for i in range(len(weighted_matrix)):
-        weighted_matrix[i][i] = 0.00
+        sil = sil_score(dissim, labels, metric = 'precomputed')
 
-    import igraph
-    graph = igraph.Graph.Weighted_Adjacency(list(weighted_matrix), mode = igraph.ADJ_MAX)
-    weights = [es['weight'] for es in graph.es]
+        # --------------------- Modularity -------------------- #
 
-    # Enfoque con umbral
+        weighted_matrix_graph = deepcopy(weighted_matrix)
+        for i in range(len(weighted_matrix_graph)):
+             weighted_matrix_graph[i][i] = 0.00
 
-    for thr in np.linspace(0.00, 1.00, 41):
+        graph = igraph.Graph.Weighted_Adjacency(list(weighted_matrix_graph),\
+                                                 mode = igraph.ADJ_MAX)
 
-        adjacency_matrix = np.zeros(weighted_matrix.shape, dtype = np.int)
+        weights = [es['weight'] for es in graph.es]
 
-        for i in range(weighted_matrix.shape[0]):
-            for j in range(weighted_matrix.shape[1]):
-                if weighted_matrix[i][j] > thr:
-                    adjacency_matrix[i][j] = 1
+        mod = graph.modularity(labels, weights = weights)
 
-        graph_aux = igraph.Graph.Adjacency(list(adjacency_matrix), mode = igraph.ADJ_MAX)
-        clust = graph_aux.clusters()
-        giant = clust.giant()
-        if len(giant.vs) < len(graph_aux.vs):
-            thr = thr - 1.00/41
-            break
+        # ---------------- Weak merit factor ------------ #
 
-    color_dict = {0: 'red', 1: 'gray', 2: 'green', 3: 'yellow', \
-                  4: 'cyan', 5: 'orange', 6: 'violet', 7:'brown', 8:'white',\
-                  9: 'black'}
-    
-    rand.seed(123457)
-    layout = graph.layout_fruchterman_reingold(weights=weights)
-    igraph.plot(graph, layout = layout, \
-            edge_width = [3 * weight if weight >= thr else 0.00 for weight in weights], \
-            vertex_color = [color_dict[labels[i]] \
-            for i in range(len(labels))],
-            vertex_label = [str(i) for i in range(len(graph.vs))],\
-            vertex_size = 25)#,\
-#            target = 'Layout_dim' + str(dim) + '.png')
-    """
-    components = [nmf.components_[i] \
-              for i in range(len(nmf.components_))]
+        wmf = weak_merit_factor(weighted_matrix_graph, labels)
 
-    features = count_vect.get_feature_names()
-    fp = codecs.open('Interpretacion_nmf.txt','a','utf8')
-    fp.write('Dimension ' + str(dim) + '\n\n')
 
-    for j in range(len(components)):
+# ---------------------- Save the data ------------------ #
 
-        comp = components[j]
-        feat_val = []
-        for i in range(len(features)):
-            feat_val.append([features[i], comp[i]])
+        observables_dim.append([sil, mod, wmf])
 
-        ans = sorted(feat_val, key = lambda x: x[1], reverse = True)
-        
-        notes_in_comp = [i for i in range(len(labels)) \
-                         if labels[i] == j]
+    data.append(observables_dim)
 
-        for note in notes_in_comp:
-             fp.write(str(note) + ', ')
-        fp.write('\n')
-        for t in ans[:20]:
-            fp.write(t[0] + ', ')
-        fp.write('\n\n')
-    fp.write('\n\n\n\n')
-    fp.close()
-    """
+
+import cPickle as pk
+pk.dump(data, open('Observables.pk', 'w'))
 
