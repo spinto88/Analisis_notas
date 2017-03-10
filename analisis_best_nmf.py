@@ -38,16 +38,18 @@ for i in range(max_notes):
 
 
 count_vect = CountVectorizer(ngram_range = (1,3), \
-                          max_df = max_df, min_df = 2)
+                          max_df = max_df, min_df = 1)
 x_counts = count_vect.fit_transform(texts)
 
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
 
+print x_tfidf.shape
+
 for nmf_dim in nmf_dim_range:
 
     err = []
-    for rand_state in range(1000):
+    for rand_state in range(10):
 
         nmf = NMF(n_components = nmf_dim, max_iter = 1000, init = 'random',\
               random_state = rand_state)

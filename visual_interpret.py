@@ -22,7 +22,7 @@ max_notes = 50
 
 max_df = 0.70
 nmf_dim = 7
-nmf_rand_state = 90
+nmf_rand_state = 7
 
 
 texts = []
@@ -36,7 +36,7 @@ for i in range(max_notes):
        pass
 
 count_vect = CountVectorizer(ngram_range = (1,3), \
-                             max_df = max_df, min_df = 2)
+                             max_df = max_df, min_df = 1)
 x_counts = count_vect.fit_transform(texts)
 
 tfidf_transformer = TfidfTransformer(norm = 'l2')
