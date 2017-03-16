@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cPickle as pk
 
-dim_range = range(2, 13)
+dim_range = range(2, 21, 1)
 
 
 sil, sil_std, mod, mod_std, wmf, wmf_std = \
@@ -11,7 +11,7 @@ sil, sil_std, mod, mod_std, wmf, wmf_std = \
 
 for dim in dim_range:
 
-    data_dim = pk.load(file('results2/Observables2_dim' + str(dim) + '.pk','r'))
+    data_dim = pk.load(file('results_temporal4/Observables_wth_dim' + str(dim) + '.pk','r'))
 
     sil.append(np.mean([x[0] for x in data_dim]))
     sil_std.append(np.std([x[0] for x in data_dim]))
@@ -29,9 +29,10 @@ plt.grid('on')
 plt.xlabel('Dimensions (D)', size = 20)
 plt.ylabel('Silhouette score', size = 20)
 plt.ylim([0.00, 1.05])
+#plt.xscale('symlog')
 plt.xticks(size = 20)
 plt.yticks(size = 20)
-plt.savefig('Silhouette_score_2.eps')
+#plt.savefig('Silhouette_score_temporal.eps')
 
 plt.figure(2)
 plt.axes([0.15, 0.15, 0.70, 0.70])
@@ -39,10 +40,11 @@ plt.errorbar(dim_range, mod, mod_std, fmt = '.-', markersize = 20)
 plt.grid('on')
 plt.xlabel('Dimensions (D)', size = 20)
 plt.ylabel('Modularity', size = 20)
+#plt.xscale('symlog')
 plt.ylim([0.00, 1.05])
 plt.xticks(size = 20)
 plt.yticks(size = 20)
-plt.savefig('Modularity_2.eps')
+#plt.savefig('Modularity_temporal.eps')
 
 plt.figure(3)
 plt.axes([0.15, 0.15, 0.70, 0.70])
@@ -50,9 +52,10 @@ plt.errorbar(dim_range, wmf, wmf_std, fmt = '.-', markersize = 20)
 plt.grid('on')
 plt.xlabel('Dimensions (D)', size = 20)
 plt.ylabel('Weak merit factor', size = 20)
-plt.ylim([0.00, 1.05])
+#plt.xscale('symlog')
+plt.ylim([-1.05, 1.05])
 plt.xticks(size = 20)
 plt.yticks(size = 20)
-plt.savefig('Weak_merit_factor_2.eps')
+#plt.savefig('Weak_merit_factor_temporal.eps')
 
 plt.show()

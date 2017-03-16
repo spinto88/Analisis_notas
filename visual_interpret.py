@@ -16,12 +16,12 @@ from copy import deepcopy
 from merit_factors import weak_merit_factor
 
  
-directory = 'Notas_prueba/'
-root_name = 'Notas_prueba'
-max_notes = 50
+directory = 'Politica_1month/'
+root_name = 'Nota'
+max_notes = 500
 
-max_df = 0.70
-nmf_dim = 7
+max_df = 50
+nmf_dim = 20
 nmf_rand_state = 7
 
 
@@ -36,7 +36,7 @@ for i in range(max_notes):
        pass
 
 count_vect = CountVectorizer(ngram_range = (1,3), \
-                             max_df = max_df, min_df = 1)
+                             max_df = max_df, min_df = 2)
 x_counts = count_vect.fit_transform(texts)
 
 tfidf_transformer = TfidfTransformer(norm = 'l2')

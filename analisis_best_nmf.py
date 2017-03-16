@@ -18,13 +18,13 @@ attention must be paid because important keywords
 could be deleted.
 """
 
-directory = 'Notas_prueba/'
-root_name = 'Notas_prueba'
-max_notes = 50
+directory = 'Politica_1month/'
+root_name = 'Nota'
+max_notes = 600
 
 
-max_df = 0.70
-nmf_dim_range = [7]#range(7,10)
+max_df = 50
+nmf_dim_range = [10]#range(7,10)
 
 texts = []
 for i in range(max_notes):
@@ -38,13 +38,13 @@ for i in range(max_notes):
 
 
 count_vect = CountVectorizer(ngram_range = (1,3), \
-                          max_df = max_df, min_df = 1)
+                          max_df = max_df, min_df = 2)
 x_counts = count_vect.fit_transform(texts)
 
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
 
-print x_tfidf.shape
+#print x_tfidf.shape
 
 for nmf_dim in nmf_dim_range:
 

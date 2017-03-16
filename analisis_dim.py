@@ -31,13 +31,14 @@ for i in range(max_notes):
    except:
        pass
 
- 
+print len(texts)
+exit() 
 dim = []
-max_df_range = np.linspace(0.4, 1.00, 21)
+max_df_range = range(10, 101, 10)
 
 for max_df in max_df_range:
 
-    count_vect = CountVectorizer(ngram_range = (1,3), \
+    count_vect = CountVectorizer(ngram_range = (1,1), \
                                  max_df = max_df, min_df = 2)
     x_counts = count_vect.fit_transform(texts)
 
@@ -48,10 +49,10 @@ plt.plot(max_df_range, dim, '.-', markersize = 15)
 plt.xlabel('Max_df', size = 20)
 plt.ylabel('Number of dimensions', size = 20)
 plt.grid('on')
-plt.xlim([0.35, 1.05])
+plt.xlim([0, 101])
 plt.xticks(size = 20)
 plt.yticks(size = 20)
-#plt.savefig('Dim_tfidf.eps')
+#plt.savefig('Dim_tfidf_temporal2.eps')
 plt.show()
 
 
