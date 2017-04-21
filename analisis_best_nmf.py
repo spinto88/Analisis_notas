@@ -2,7 +2,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.decomposition import NMF
 
-
 import codecs
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,13 +17,14 @@ attention must be paid because important keywords
 could be deleted.
 """
 
-directory = 'Notas_prueba/'
-root_name = 'Notas_prueba'
-max_notes = 50
-
+directory = 'Politica_4month/'
+root_name = 'Nota'
+max_notes = 2500
 
 max_df = 0.70
-nmf_dim_range = [7]#range(7,10)
+min_df = 10
+
+nmf_dim = 52
 
 texts = []
 for i in range(max_notes):
@@ -38,25 +38,21 @@ for i in range(max_notes):
 
 
 count_vect = CountVectorizer(ngram_range = (1,3), \
-                          max_df = max_df, min_df = 1)
+                          max_df = max_df, min_df = min_df)
 x_counts = count_vect.fit_transform(texts)
 
 tfidf_transformer = TfidfTransformer(norm = 'l2')
 x_tfidf = tfidf_transformer.fit_transform(x_counts)
 
-print x_tfidf.shape
+err = []
+for rand_state in range(100):
 
-for nmf_dim in nmf_dim_range:
-
-    err = []
-    for rand_state in range(10):
-
-        nmf = NMF(n_components = nmf_dim, max_iter = 1000, init = 'random',\
+    nmf = NMF(n_components = nmf_dim, max_iter = 1000, init = 'random',\
               random_state = rand_state)
 
-        x_red = nmf.fit_transform(x_tfidf.toarray())
-        err.append(nmf.reconstruction_err_)
-        if nmf.reconstruction_err_ == min(err):
-            rand_state_aux = rand_state
+    x_red = nmf.fit_transform(x_tfidf.toarray())
+    err.append(nmf.reconstruction_err_)
+    if nmf.reconstruction_err_ == min(err):
+        rand_state_aux = rand_state
 
-    print nmf_dim, rand_state_aux
+print 'Best seed for NMF: ', rand_state_aux
